@@ -1,0 +1,4 @@
+include README.md
+include LICENSE
+recursive-include i3_workspace_icons *.ttf
+recursive-include i3_workspace_icons *.svg

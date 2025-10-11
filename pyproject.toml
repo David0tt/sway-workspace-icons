@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "i3-workspace-icons"
+version = "0.1.0"
+description = "Dynamically update i3wm workspace names with program icons"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "David Ott"}
+]
+keywords = ["i3", "i3wm", "workspace", "icons", "font"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Desktop Environment :: Window Managers",
+]
+
+dependencies = [
+    "i3ipc>=2.2.1",      # Python interface to i3 window manager IPC
+    "PyYAML>=6.0",        # YAML file parsing for config
+    "fonttools>=4.38.0",  # Font file manipulation
+    "Pillow>=9.5.0",      # Image processing (PNG)
+    "cairosvg>=2.7.0",    # SVG to PNG conversion (requires system cairo)
+]
+
+[project.urls]
+Homepage = "https://github.com/David0tt/i3-workspace-icons"
+Repository = "https://github.com/David0tt/i3-workspace-icons"
+Issues = "https://github.com/David0tt/i3-workspace-icons/issues"
+
+[project.scripts]
+i3-workspace-icon-daemon = "i3_workspace_icons.i3_workspace_icon_daemon:main"
+
+[tool.setuptools]
+# Automatically find packages
+packages = ["i3_workspace_icons"]
+
+# Include data files specified in MANIFEST.in
+include-package-data = true
+
+[tool.setuptools.package-data]
+i3_workspace_icons = ["*.ttf", "*.svg"]

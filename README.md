@@ -11,23 +11,6 @@ Dynamically update i3wm workspace names with program icons of currently running 
 - **SVG and PNG support**: Handles both SVG (preferred) and PNG icon formats
 - **Program count indicators**: When multiple instances of the same program are running, their count can be shown with subscripts or superscripts
 
-## How It Works
-
-Since i3bar cannot display images directly, this daemon creates a custom font from program icons on-the-fly:
-
-1. The daemon monitors i3 window events (new, close, move)
-2. When a new program is detected:
-   - Finds the program's `.desktop` file
-   - Extracts the `Icon=` entry to locate the icon file in standard system directories
-   - Assigns the program a Unicode codepoint in the Private Use Area (PUA)
-   - Rebuilds the custom font with all known icons
-   - Stops i3bar (to prevent crashes when modifying the active font)
-   - Installs the font to `~/.local/share/fonts/`
-   - Restarts i3bar
-   - Reloads the font cache with `fc-cache`
-   - Restarts i3bar again to load the updated cache
-3. Workspace names are updated with icon characters from the custom font whenever window events occur
-4. A program-to-icon map is persisted for consistency and fast restarts. The font is only rebuilt when a new program is encountered
 
 # Installation
 
@@ -209,6 +192,24 @@ Unlike these projects, which rely on pre-existing icon fonts (like FontAwesome o
 - **i3bar restart required**: When installing a new font, i3bar must be stopped (to prevent crashes), restarted, and then restarted again after the font cache updates. This causes brief flickering or temporary disappearance of i3bar on slower machines. This only occurs when a new program is encountered for the first time.
 - **Icon spacing with counts**: Numbers indicating program counts use subscripts/superscripts, which disrupt equal spacing between icons. A better solution might use Unicode diacritics or embed numbers directly in icons, but this has not been implemented yet. 
 
+
+## How It Works
+
+Since i3bar cannot display images directly, this daemon creates a custom font from program icons on-the-fly:
+
+1. The daemon monitors i3 window events (new, close, move)
+2. When a new program is detected:
+   - Finds the program's `.desktop` file
+   - Extracts the `Icon=` entry to locate the icon file in standard system directories
+   - Assigns the program a Unicode codepoint in the Private Use Area (PUA)
+   - Rebuilds the custom font with all known icons
+   - Stops i3bar (to prevent crashes when modifying the active font)
+   - Installs the font to `~/.local/share/fonts/`
+   - Restarts i3bar
+   - Reloads the font cache with `fc-cache`
+   - Restarts i3bar again to load the updated cache
+3. Workspace names are updated with icon characters from the custom font whenever window events occur
+4. A program-to-icon map is persisted for consistency and fast restarts. The font is only rebuilt when a new program is encountered
 
 
 ## Development

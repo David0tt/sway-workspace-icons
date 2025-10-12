@@ -30,8 +30,8 @@ sudo apt install fontconfig libcairo2
 ### Install Python Package
 
 ```bash
-git clone https://github.com/David0tt/i3bar_workspace_icons
-pip install i3bar_workspace_icons/
+git clone https://github.com/David0tt/i3_workspace_icons
+pip install i3_workspace_icons/
 ```
 
 ### i3 Configuration
@@ -62,8 +62,8 @@ We create an isolated Python environment:
 ```bash
 conda create -n i3WorkspaceIcons python==3.12 -y
 conda activate i3WorkspaceIcons
-git clone https://github.com/David0tt/i3bar_workspace_icons
-pip install i3bar_workspace_icons/
+git clone https://github.com/David0tt/i3_workspace_icons
+pip install i3_workspace_icons/
 ```
 
 Then add to your `~/.config/i3/config`:

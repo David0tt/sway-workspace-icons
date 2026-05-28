@@ -823,13 +823,22 @@ class WorkspaceIconDaemon:
     def install_icon_font(font_output_path: Path) -> None:
         """Install the created icon font to the user's font directory.
 
-        Because sway supervises waybar via ``swaybar_command waybar``, we must
-        NOT spawn waybar ourselves — sway will restart it automatically after
-        a kill.  The installation sequence is therefore:
+        This method performs a careful installation sequence to avoid waybar crashes:
+        1. Stop waybar (prevents crash when modifying active font)
+        2. Copy font to ~/.local/share/fonts
+        3. Restart waybar
+        4. Refresh font cache with fc-cache
+        5. Restart waybar again (to load updated cache)
 
-        1. Copy font to ~/.local/share/fonts
-        2. Refresh font cache with fc-cache
-        3. Kill waybar — sway restarts it and picks up the updated cache
+        This sequence is necessary because:
+        - waybar crashes if its active font file is modified
+        - fc-cache is slow and shouldn't block waybar restart
+        - sway-reload/restart are not enough to ensure fonts are reloaded properly
+
+        # TODO: I have not yet verified, whether this sequence is actually needed. I simply ported it from i3bar, where it was required.
+        # With waybar at least, sway takes somewhat care of restarting the bar, so the restart in here is not strictly required
+        # In some instances, multiple waybars get spawned. For now this can be fixed with a `pkill waybar` and sway reload
+
 
         Args:
             font_output_path: Path to the font file to install.
@@ -845,18 +854,30 @@ class WorkspaceIconDaemon:
         user_fonts_dir.mkdir(parents=True, exist_ok=True)
         target_path = user_fonts_dir / font_output_path.name
 
+        # Suppress output from external commands
         devnull = subprocess.DEVNULL
 
+        subprocess.run(["pkill", "waybar"], check=False, stdout=devnull, stderr=devnull)
         shutil.copy2(font_output_path, target_path)
+        subprocess.Popen(
+            ["waybar"],
+            start_new_session=True,
+            stdout=devnull,
+            stderr=devnull,
+        )
         subprocess.run(
             ["fc-cache", "-f", str(user_fonts_dir)],
             check=False,
             stdout=devnull,
             stderr=devnull,
         )
-        # Kill waybar; sway (swaybar_command waybar) restarts it automatically,
-        # picking up the updated font cache.
         subprocess.run(["pkill", "waybar"], check=False, stdout=devnull, stderr=devnull)
+        subprocess.Popen(
+            ["waybar"],
+            start_new_session=True,
+            stdout=devnull,
+            stderr=devnull,
+        )
 
     def _add_missing_programs(self, missing_programs: list[str]) -> bool:
         """Add missing programs to the icon map.

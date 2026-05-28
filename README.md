@@ -84,6 +84,13 @@ bindsym $mod+2 workspace number 2
 # ... continue for other workspaces
 ```
 
+In waybar, you need to instead change the font in the styling in `~/.config/waybar/style.css` e.g.:
+
+```
+#workspaces button {
+    font-family: "swayWorkspaceDaemonIconFont", monospace;
+}
+```
 
 
 
@@ -259,3 +266,4 @@ Verify that icons are created at the correct Unicode locations (Private Use Area
 
 - [ ] Limit maximum number of icons shown per workspace
 - [ ] Better icon spacing with count indicators
+- [ ] support for different bars. In theory, this works, with any bar that shows workspaces by their title, and where you can set the font (and that has a reasonable font rendering support, e.g. for emojis). However, the updating sequence needs to be modified, depending on the bar. 

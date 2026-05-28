@@ -35,7 +35,7 @@ ENV/
 
 # Generated files
 program_icon_map.yaml
-i3WorkspaceDaemonIconFont.ttf
+swayWorkspaceDaemonIconFont.ttf
 MyCreatedIconFont.ttf
 
 # OS

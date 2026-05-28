@@ -1,4 +1,4 @@
 include README.md
 include LICENSE
-recursive-include i3_workspace_icons *.ttf
-recursive-include i3_workspace_icons *.svg
+recursive-include sway_workspace_icons *.ttf
+recursive-include sway_workspace_icons *.svg

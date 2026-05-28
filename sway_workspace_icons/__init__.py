@@ -1,4 +1,4 @@
-"""i3 workspace icons package."""
+"""sway workspace icons package."""
 
 from __future__ import annotations
 

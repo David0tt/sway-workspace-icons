@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""i3 workspace icon daemon.
+"""sway workspace icon daemon.
 
-Dynamically updates i3wm workspace names with icons by creating custom
+Dynamically updates sway workspace names with icons by creating custom
 fonts on-the-fly. When new applications are detected, their icons are
 automatically discovered, added to a custom font file, and the font is
 rebuilt and installed.
@@ -77,7 +77,7 @@ def get_resource_path(filename: str) -> Path:
 
 
 # Application name for XDG directories
-APP_NAME = "i3bar-workspace-program-icons"
+APP_NAME = "swaybar-workspace-program-icons"
 
 # XDG-compliant default paths
 DEFAULT_CONFIG_DIR = get_xdg_config_home() / APP_NAME
@@ -87,7 +87,7 @@ DEFAULT_CACHE_DIR = get_xdg_cache_home() / APP_NAME
 DEFAULT_PROGRAM_ICON_MAP_PATH = DEFAULT_CONFIG_DIR / "program_icon_map.yaml"
 
 # Generated font file (can be regenerated, so it's cache)
-DEFAULT_FONT_OUTPUT_PATH = DEFAULT_CACHE_DIR / "i3WorkspaceDaemonIconFont.ttf"
+DEFAULT_FONT_OUTPUT_PATH = DEFAULT_CACHE_DIR / "swayWorkspaceDaemonIconFont.ttf"
 
 # Read-only resource files bundled with the package
 DEFAULT_BASE_FONT_PATH = get_resource_path("NotoColorEmoji.ttf")
@@ -100,7 +100,7 @@ PROGRAM_NAME_CORRECTIONS = {
 }
 
 # Other constants
-DEFAULT_FONT_FAMILY_NAME = "i3WorkspaceDaemonIconFont"
+DEFAULT_FONT_FAMILY_NAME = "swayWorkspaceDaemonIconFont"
 PUA_START = 0xE000
 
 logger = logging.getLogger(__name__)
@@ -349,14 +349,14 @@ class ProgramIconMap:
 
 
 class WorkspaceIconDaemon:
-    """Main daemon class for managing i3 workspace icons.
+    """Main daemon class for managing sway workspace icons.
 
-    Monitors i3 window events and dynamically updates workspace names with
+    Monitors sway window events and dynamically updates workspace names with
     application icons. When new applications are detected, their icons are
     discovered, added to a custom font, and the font is rebuilt.
 
     Attributes:
-        i3: i3ipc connection object.
+        sway: i3ipc connection object.
         program_icon_map: Manager for program-to-icon mappings.
         base_font_path: Path to the base font file.
         font_output_path: Path where the custom font is saved.
@@ -383,7 +383,7 @@ class WorkspaceIconDaemon:
 
     def __init__(
         self,
-        i3: i3ipc.Connection,
+        sway: i3ipc.Connection,
         program_icon_map_path: Path = DEFAULT_PROGRAM_ICON_MAP_PATH,
         base_font_path: Path = DEFAULT_BASE_FONT_PATH,
         font_output_path: Path = DEFAULT_FONT_OUTPUT_PATH,
@@ -394,7 +394,7 @@ class WorkspaceIconDaemon:
         """Initialize the workspace icon daemon.
 
         Args:
-            i3: i3ipc connection object.
+            sway: i3ipc connection object.
             program_icon_map_path: Path to the program icon map YAML file.
             base_font_path: Path to the base font file.
             font_output_path: Path where the custom font is saved.
@@ -404,7 +404,7 @@ class WorkspaceIconDaemon:
                 programs without icons. If False, programs without icons are
                 tracked but don't get Unicode IDs.
         """
-        self.i3: i3ipc.Connection = i3
+        self.sway: i3ipc.Connection = sway
         self.program_icon_map: ProgramIconMap = ProgramIconMap(program_icon_map_path)
         self.base_font_path: Path = base_font_path
         self.font_output_path: Path = font_output_path
@@ -428,12 +428,12 @@ class WorkspaceIconDaemon:
 
     @staticmethod
     def get_programs_by_workspace(
-        i3: i3ipc.Connection, ignored_programs: set[str]
+        sway: i3ipc.Connection, ignored_programs: set[str]
     ) -> list[WorkspaceInfo]:
         """Get workspace info with programs for all workspaces.
 
         Args:
-            i3: The i3ipc connection object.
+            sway: The i3ipc connection object.
             ignored_programs: Set of program names to ignore.
 
         Returns:
@@ -441,7 +441,7 @@ class WorkspaceIconDaemon:
         """
         workspaces_info = []
 
-        for workspace in i3.get_tree().workspaces():
+        for workspace in sway.get_tree().workspaces():
             # Get all windows and sort them by visual layout position
             windows = workspace.leaves()
             sorted_windows = WorkspaceIconDaemon._sort_windows_by_layout(windows)
@@ -466,7 +466,7 @@ class WorkspaceIconDaemon:
         Uses WM_CLASS (window_class) as the primary identifier for icon lookup.
 
         Args:
-            window: The i3 window container.
+            window: The sway window container.
 
         Returns:
             The window class name, or None if not available.
@@ -822,17 +822,17 @@ class WorkspaceIconDaemon:
     def install_icon_font(font_output_path: Path) -> None:
         """Install the created icon font to the user's font directory.
 
-        This method performs a careful installation sequence to avoid i3bar crashes:
-        1. Stop i3bar (prevents crash when modifying active font)
+        This method performs a careful installation sequence to avoid swaybar crashes:
+        1. Stop swaybar (prevents crash when modifying active font)
         2. Copy font to ~/.local/share/fonts
-        3. Restart i3bar
+        3. Restart swaybar
         4. Refresh font cache with fc-cache
-        5. Restart i3bar again (to load updated cache)
+        5. Restart swaybar again (to load updated cache)
 
         This sequence is necessary because:
-        - i3bar crashes if its active font file is modified
-        - fc-cache is slow and shouldn't block i3bar restart
-        - i3-reload/restart are not enough to ensure fonts are reloaded properly
+        - swaybar crashes if its active font file is modified
+        - fc-cache is slow and shouldn't block swaybar restart
+        - sway-reload/restart are not enough to ensure fonts are reloaded properly
 
         Args:
             font_output_path: Path to the font file to install.
@@ -851,10 +851,10 @@ class WorkspaceIconDaemon:
         # Suppress output from external commands
         devnull = subprocess.DEVNULL
 
-        subprocess.run(["pkill", "i3bar"], check=False, stdout=devnull, stderr=devnull)
+        subprocess.run(["pkill", "swaybar"], check=False, stdout=devnull, stderr=devnull)
         shutil.copy2(font_output_path, target_path)
         subprocess.Popen(
-            ["i3bar"],
+            ["swaybar"],
             start_new_session=True,
             stdout=devnull,
             stderr=devnull,
@@ -865,9 +865,9 @@ class WorkspaceIconDaemon:
             stdout=devnull,
             stderr=devnull,
         )
-        subprocess.run(["pkill", "i3bar"], check=False, stdout=devnull, stderr=devnull)
+        subprocess.run(["pkill", "swaybar"], check=False, stdout=devnull, stderr=devnull)
         subprocess.Popen(
-            ["i3bar"],
+            ["swaybar"],
             start_new_session=True,
             stdout=devnull,
             stderr=devnull,
@@ -922,7 +922,7 @@ class WorkspaceIconDaemon:
         Returns:
             True if any new programs were added and the font was rebuilt.
         """
-        workspaces_info = self.get_programs_by_workspace(self.i3, self.IGNORED_PROGRAMS)
+        workspaces_info = self.get_programs_by_workspace(self.sway, self.IGNORED_PROGRAMS)
         all_programs = {
             prog for ws_info in workspaces_info for prog in ws_info.programs
         }
@@ -953,19 +953,19 @@ class WorkspaceIconDaemon:
 
     @staticmethod
     def rename_workspace(
-        i3: i3ipc.Connection, workspace_name: str, new_name: str
+        sway: i3ipc.Connection, workspace_name: str, new_name: str
     ) -> None:
-        """Rename a workspace using i3 IPC command.
+        """Rename a workspace using sway IPC command.
 
         Args:
-            i3: The i3ipc connection object.
+            sway: The i3ipc connection object.
             workspace_name: Current name of the workspace.
             new_name: New name for the workspace.
         """
         # quotes " need to be escaped
         old_escaped = workspace_name.replace('"', '\\"')
         new_escaped = new_name.replace('"', '\\"')
-        i3.command(f'rename workspace "{old_escaped}" to "{new_escaped}"')
+        sway.command(f'rename workspace "{old_escaped}" to "{new_escaped}"')
 
     def update_workspace_names(self) -> None:
         """Update all workspace names with application icons.
@@ -973,7 +973,7 @@ class WorkspaceIconDaemon:
         Iterates through all workspaces, generates icon strings from running
         applications, and updates workspace names accordingly.
         """
-        workspaces_info = self.get_programs_by_workspace(self.i3, self.IGNORED_PROGRAMS)
+        workspaces_info = self.get_programs_by_workspace(self.sway, self.IGNORED_PROGRAMS)
 
         for ws_info in workspaces_info:
             icons = [
@@ -989,7 +989,7 @@ class WorkspaceIconDaemon:
             new_name = self._construct_workspace_name(ws_info.num, processed_icons)
 
             if new_name != ws_info.name:
-                self.rename_workspace(self.i3, ws_info.name, new_name)
+                self.rename_workspace(self.sway, ws_info.name, new_name)
 
     def _process_icons(self, icons: list[str]) -> list[str]:
         """Process icons based on the unique_icons_mode.
@@ -1059,11 +1059,11 @@ class WorkspaceIconDaemon:
         """
         return f"{num}: {''.join(icons)}" if icons else str(num)
 
-    def on_window_event(self, _i3: i3ipc.Connection, event: i3ipc.Event) -> None:
-        """Handle i3 window events.
+    def on_window_event(self, _sway: i3ipc.Connection, event: i3ipc.Event) -> None:
+        """Handle sway window events.
 
         Args:
-            _i3: The i3ipc connection (unused, required by i3ipc API).
+            _sway: The i3ipc connection (unused, required by i3ipc API).
             event: The window event.
         """
         if event.change in {"new", "close", "move", "title"}:
@@ -1074,12 +1074,12 @@ class WorkspaceIconDaemon:
         """Clean up workspace names and exit gracefully."""
         logger.debug("Cleaning up workspace names...")
 
-        for workspace in self.i3.get_tree().workspaces():
+        for workspace in self.sway.get_tree().workspaces():
             new_name = self._construct_workspace_name(workspace.num, [])
             if new_name != workspace.name:
-                self.rename_workspace(self.i3, workspace.name, new_name)
+                self.rename_workspace(self.sway, workspace.name, new_name)
 
-        self.i3.main_quit()
+        self.sway.main_quit()
         sys.exit(0)
 
     def rebuild_program_icon_map(self) -> bool:
@@ -1149,17 +1149,17 @@ class WorkspaceIconDaemon:
             "window::title",
             "workspace::move",
         ):
-            self.i3.on(event, self.on_window_event)
+            self.sway.on(event, self.on_window_event)
 
         logger.info("Daemon is running. Press Ctrl+C to exit.")
-        self.i3.main()
+        self.sway.main()
 
 
 def parse_arguments() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description=(
-            "i3 workspace icon daemon - dynamically create fonts and "
+            "sway workspace icon daemon - dynamically create fonts and "
             "update workspace names"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -1261,10 +1261,10 @@ def main() -> None:
                 path.unlink()
                 logger.info(f"Removed file for full rebuild: {path}")
 
-    i3 = i3ipc.Connection()
+    sway = i3ipc.Connection()
 
     daemon = WorkspaceIconDaemon(
-        i3=i3,
+        sway=sway,
         program_icon_map_path=args.program_icon_map,
         base_font_path=args.base_font,
         font_output_path=args.font_output,

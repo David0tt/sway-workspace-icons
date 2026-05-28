@@ -463,20 +463,21 @@ class WorkspaceIconDaemon:
     def _get_window_name(window: i3ipc.Con) -> str | None:
         """Extract the program identifier from a window.
 
-        Uses WM_CLASS (window_class) as the primary identifier for icon lookup.
+        Uses app_id (native Wayland) as the primary identifier, falling back
+        to WM_CLASS (window_class) for XWayland / X11 windows.
 
         Args:
             window: The sway window container.
 
         Returns:
-            The window class name, or None if not available.
+            The app_id or window class name, or None if neither is available.
         """
-        if not window.window_class:
+        # Native Wayland windows expose app_id; X11/XWayland windows use window_class.
+        raw_name = window.app_id or window.window_class
+        if not raw_name:
             return None
 
-        corrected_name = PROGRAM_NAME_CORRECTIONS.get(
-            window.window_class, window.window_class
-        )
+        corrected_name = PROGRAM_NAME_CORRECTIONS.get(raw_name, raw_name)
         return corrected_name
 
     @staticmethod
@@ -822,17 +823,13 @@ class WorkspaceIconDaemon:
     def install_icon_font(font_output_path: Path) -> None:
         """Install the created icon font to the user's font directory.
 
-        This method performs a careful installation sequence to avoid swaybar crashes:
-        1. Stop swaybar (prevents crash when modifying active font)
-        2. Copy font to ~/.local/share/fonts
-        3. Restart swaybar
-        4. Refresh font cache with fc-cache
-        5. Restart swaybar again (to load updated cache)
+        Because sway supervises waybar via ``swaybar_command waybar``, we must
+        NOT spawn waybar ourselves — sway will restart it automatically after
+        a kill.  The installation sequence is therefore:
 
-        This sequence is necessary because:
-        - swaybar crashes if its active font file is modified
-        - fc-cache is slow and shouldn't block swaybar restart
-        - sway-reload/restart are not enough to ensure fonts are reloaded properly
+        1. Copy font to ~/.local/share/fonts
+        2. Refresh font cache with fc-cache
+        3. Kill waybar — sway restarts it and picks up the updated cache
 
         Args:
             font_output_path: Path to the font file to install.
@@ -848,30 +845,18 @@ class WorkspaceIconDaemon:
         user_fonts_dir.mkdir(parents=True, exist_ok=True)
         target_path = user_fonts_dir / font_output_path.name
 
-        # Suppress output from external commands
         devnull = subprocess.DEVNULL
 
-        subprocess.run(["pkill", "swaybar"], check=False, stdout=devnull, stderr=devnull)
         shutil.copy2(font_output_path, target_path)
-        subprocess.Popen(
-            ["swaybar"],
-            start_new_session=True,
-            stdout=devnull,
-            stderr=devnull,
-        )
         subprocess.run(
             ["fc-cache", "-f", str(user_fonts_dir)],
             check=False,
             stdout=devnull,
             stderr=devnull,
         )
-        subprocess.run(["pkill", "swaybar"], check=False, stdout=devnull, stderr=devnull)
-        subprocess.Popen(
-            ["swaybar"],
-            start_new_session=True,
-            stdout=devnull,
-            stderr=devnull,
-        )
+        # Kill waybar; sway (swaybar_command waybar) restarts it automatically,
+        # picking up the updated font cache.
+        subprocess.run(["pkill", "waybar"], check=False, stdout=devnull, stderr=devnull)
 
     def _add_missing_programs(self, missing_programs: list[str]) -> bool:
         """Add missing programs to the icon map.
@@ -922,7 +907,9 @@ class WorkspaceIconDaemon:
         Returns:
             True if any new programs were added and the font was rebuilt.
         """
-        workspaces_info = self.get_programs_by_workspace(self.sway, self.IGNORED_PROGRAMS)
+        workspaces_info = self.get_programs_by_workspace(
+            self.sway, self.IGNORED_PROGRAMS
+        )
         all_programs = {
             prog for ws_info in workspaces_info for prog in ws_info.programs
         }
@@ -973,7 +960,9 @@ class WorkspaceIconDaemon:
         Iterates through all workspaces, generates icon strings from running
         applications, and updates workspace names accordingly.
         """
-        workspaces_info = self.get_programs_by_workspace(self.sway, self.IGNORED_PROGRAMS)
+        workspaces_info = self.get_programs_by_workspace(
+            self.sway, self.IGNORED_PROGRAMS
+        )
 
         for ws_info in workspaces_info:
             icons = [

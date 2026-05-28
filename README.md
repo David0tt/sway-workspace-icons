@@ -267,3 +267,4 @@ Verify that icons are created at the correct Unicode locations (Private Use Area
 - [ ] Limit maximum number of icons shown per workspace
 - [ ] Better icon spacing with count indicators
 - [ ] support for different bars. In theory, this works, with any bar that shows workspaces by their title, and where you can set the font (and that has a reasonable font rendering support, e.g. for emojis). However, the updating sequence needs to be modified, depending on the bar. 
+- [ ] graceful restart currently does not work: If you add the sway-workspace-icon-daemon to your sway config with exec_always, this could lead to multiple daemon processes being created, whenever you reload sway. Further, the daemon closes and starts waybar, thereby taking ownership of this child process, so on sway reload a second waybar, managed by sway is started. To the best of my knowledge everything works when the whole system is restarted, but of course this could be improved. 

@@ -541,7 +541,7 @@ class WorkspaceIconDaemon:
         Returns:
             List of unique name variants (deduplicated).
         """
-        separators = ["-", "_", "."]
+        separators = ["-", "_", ".", " "]
         replacements = ["", "_", "-", "."]
         variants = [name]
 
@@ -690,6 +690,7 @@ class WorkspaceIconDaemon:
                 Path("/usr/share/icons/Humanity/apps/128"),
                 Path("/usr/share/icons/Humanity/apps/192"),
                 Path("/usr/share/icons/HighContrast/scalable/apps"),
+                Path("/usr/share/pixmaps"),
             ]
         elif extension == "png":  # png
             search_paths = [
@@ -769,15 +770,19 @@ class WorkspaceIconDaemon:
         if icon_path.is_absolute() and icon_path.exists():
             return icon_path
 
+        # Strip known image extensions so "foo.xpm" searches for "foo.svg"/"foo.png"
+        known_extensions = {".svg", ".png", ".xpm", ".ico", ".gif", ".jpg", ".jpeg"}
+        search_name = icon_path.stem if icon_path.suffix.lower() in known_extensions else icon_name
+
         # Search in standard paths (SVG first, then PNG)
         for extension in ["svg", "png"]:
-            result = WorkspaceIconDaemon._search_icon_in_paths(icon_name, extension)
+            result = WorkspaceIconDaemon._search_icon_in_paths(search_name, extension)
             if result:
                 return result
 
         # Global fallback searches
         for extension in ["svg", "png"]:
-            result = WorkspaceIconDaemon._global_icon_search(icon_name, extension)
+            result = WorkspaceIconDaemon._global_icon_search(search_name, extension)
             if result:
                 return result
 

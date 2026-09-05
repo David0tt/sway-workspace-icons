@@ -1,3 +1,5 @@
+# NOTE: all development is now continued in https://github.com/David0tt/workspace-icon-daemon
+
 # sway Workspace Icons
 
 ![Example swaybar with workspace icons](images/bar_example_image.png)
